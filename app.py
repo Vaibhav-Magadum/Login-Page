@@ -1,11 +1,15 @@
+import os
+import secrets
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = "change-this-to-a-random-secret-key"
+app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 
 # In-memory user store for demonstration purposes
 users = {
-    "admin": "admin123",
+    "admin": generate_password_hash("admin123"),
 }
 
 
@@ -26,7 +30,7 @@ def login():
             flash("Please fill in all fields.", "error")
             return render_template("login.html")
 
-        if username in users and users[username] == password:
+        if username in users and check_password_hash(users[username], password):
             session["username"] = username
             flash("Login successful!", "success")
             return redirect(url_for("dashboard"))
@@ -55,7 +59,7 @@ def register():
             flash("Username already exists.", "error")
             return render_template("register.html")
 
-        users[username] = password
+        users[username] = generate_password_hash(password)
         flash("Registration successful! Please log in.", "success")
         return redirect(url_for("login"))
 
@@ -78,4 +82,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")
